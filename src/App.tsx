@@ -24,6 +24,8 @@ const COBALT_INSTANCES = [
   'https://api.cobalt.tools'
 ];
 
+const PROXY = '';
+
 async function findYouTubeVideoId(query: string): Promise<{ videoId: string; duration: number }> {
   const res = await fetch(
     `${PROXY}/api/yt-search?q=${encodeURIComponent(query)}`,
