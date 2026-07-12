@@ -472,19 +472,3 @@ body::before {
   .dl-btn span { display: none; }
   .dl-btn { padding: 0.45rem 0.65rem; }
 }
-
-/* Settings Modal */
-.modal-overlay {
-  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center; z-index: 100;
-}
-.modal-content {
-  background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 400px;
-  position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-}
-.modal-close {
-  position: absolute; top: 1rem; right: 1rem; background: none; border: none;
-  cursor: pointer; color: #9ca3af;
-}
-.modal-close:hover { color: #4b5563; }
