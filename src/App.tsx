@@ -15,9 +15,14 @@ interface Song {
 
 type DownloadState = 'idle' | 'searching' | 'fetching' | 'done' | 'error';
 
-// /api/ routes are handled by the Vite plugin in dev and Vercel functions in production.
-// Always relative — no server URL needed.
-const PROXY = '';
+// Public Cobalt instances to bypass Vercel backend limits entirely.
+// By doing this client-side, we avoid Vercel's 10s timeout and 4.5MB payload limits.
+const COBALT_INSTANCES = [
+  'https://cobalt-api.kwiatekmateusz.com',
+  'https://co.wuk.sh',
+  'https://cobalt.q0.is',
+  'https://api.cobalt.tools'
+];
 
 async function findYouTubeVideoId(query: string): Promise<{ videoId: string; duration: number }> {
   const res = await fetch(
@@ -178,21 +183,52 @@ function App() {
 
       setDownloadStates(prev => ({ ...prev, [id]: 'fetching' }));
 
-      // Build URL with unique timestamp to prevent ANY browser caching
-      const title = encodeURIComponent(`${song.trackName} - ${song.artistName}`);
-      const downloadUrl = `${PROXY}/api/download?videoId=${videoId}&title=${title}&t=${Date.now()}`;
+      let downloadUrl = '';
 
-      // Use a hidden iframe — the most reliable way to trigger streaming downloads
-      // without navigating away, and works for repeated calls unlike a.click()
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = downloadUrl;
-      document.body.appendChild(iframe);
-      // Clean up iframe after the download has had time to initiate
-      setTimeout(() => document.body.removeChild(iframe), 60000);
+      // Cross the limits: completely bypass Vercel backend and use client-side APIs
+      for (const instance of COBALT_INSTANCES) {
+        try {
+          const res = await fetch(`${instance}/api/json`, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              url: `https://www.youtube.com/watch?v=${videoId}`,
+              downloadMode: 'audio',
+              audioFormat: 'mp3',
+              filenamePattern: 'nerdy'
+            })
+          });
+
+          if (!res.ok) continue;
+
+          const data = await res.json();
+          if (data.url || data.stream) {
+            downloadUrl = data.url || data.stream;
+            break; // Found a working instance
+          }
+        } catch (e) {
+          console.warn(`[cobalt] ${instance} failed, trying next...`);
+        }
+      }
+
+      if (!downloadUrl) {
+        throw new Error("All download servers are busy. Please try again.");
+      }
+
+      // We have the direct download URL! Trigger it.
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      // Using target _blank in case it's a stream that the browser tries to play
+      a.target = '_blank';
+      a.download = `${song.trackName} - ${song.artistName}.mp3`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
 
       setDownloadStates(prev => ({ ...prev, [id]: 'done' }));
-      // Reset quickly so user can download again immediately
       setTimeout(() => setDownloadStates(prev => ({ ...prev, [id]: 'idle' })), 2500);
     } catch (err: any) {
       setDownloadErrors(prev => ({ ...prev, [id]: err.message }));
