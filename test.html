@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundDrop API Tester</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8fafc;
+            color: #0f172a;
+        }
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            margin-bottom: 2rem;
+        }
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        button:hover { background: #4338ca; }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .result-info h3 { margin: 0 0 0.25rem 0; font-size: 1.1rem; }
+        .result-info p { margin: 0; color: #64748b; font-size: 0.9rem; }
+        .loading { color: #2563eb; font-weight: bold; margin-top: 1rem; }
+        .error { color: #dc2626; font-weight: bold; margin-top: 1rem; }
+        
+        .success-box {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #dcfce7;
+            border: 1px solid #86efac;
+            border-radius: 6px;
+        }
+        audio { width: 100%; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+
+    <h1>SoundDrop API Tester</h1>
+    <p>Simulate a 3rd party website calling your API.</p>
+
+    <div class="card">
+        <label style="font-weight:bold;display:block;margin-bottom:0.5rem">1. Your Render API URL</label>
+        <input type="url" id="apiUrl" placeholder="e.g. https://sounddrop-api.onrender.com" value="http://localhost:3001">
+        
+        <label style="font-weight:bold;display:block;margin-bottom:0.5rem">2. Search for a song</label>
+        <div style="display:flex;gap:1rem;">
+            <input type="text" id="searchQuery" placeholder="Song name..." style="margin-bottom:0">
+            <button id="searchBtn">Search</button>
+        </div>
+        <div id="searchStatus"></div>
+    </div>
+
+    <div id="resultsArea" style="display: none;">
+        <h2>Search Results (Top 10)</h2>
+        <div id="resultsList"></div>
+    </div>
+
+    <script>
+        const searchBtn = document.getElementById('searchBtn');
+        const searchStatus = document.getElementById('searchStatus');
+        const resultsArea = document.getElementById('resultsArea');
+        const resultsList = document.getElementById('resultsList');
+
+        searchBtn.addEventListener('click', async () => {
+            const baseUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
+            const query = document.getElementById('searchQuery').value;
+            
+            if (!baseUrl || !query) return alert('Please enter both URL and search query');
+
+            searchBtn.disabled = true;
+            searchStatus.innerHTML = '<div class="loading">Searching via API...</div>';
+            resultsList.innerHTML = '';
+            resultsArea.style.display = 'none';
+
+            try {
+                const res = await fetch(`${baseUrl}/api/search?q=${encodeURIComponent(query)}`);
+                const json = await res.json();
+                
+                if (!json.success) throw new Error(json.error || 'API Search failed');
+
+                json.data.forEach(song => {
+                    const div = document.createElement('div');
+                    div.className = 'result-item';
+                    
+                    const durationText = `${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}`;
+                    
+                    div.innerHTML = `
+                        <div class="result-info">
+                            <h3>${song.title}</h3>
+                            <p>${song.author} • ${durationText}</p>
+                        </div>
+                        <div class="result-action">
+                            <button onclick="testDownload('${song.videoId}', this)">Test Download API</button>
+                        </div>
+                    `;
+                    resultsList.appendChild(div);
+                });
+
+                searchStatus.innerHTML = '';
+                resultsArea.style.display = 'block';
+
+            } catch (err) {
+                searchStatus.innerHTML = `<div class="error">Error: ${err.message}</div>`;
+            } finally {
+                searchBtn.disabled = false;
+            }
+        });
+
+        async function testDownload(videoId, btn) {
+            const baseUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
+            const actionContainer = btn.parentElement;
+            
+            btn.style.display = 'none';
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'loading';
+            statusDiv.innerText = 'Calling /api/upload... (This takes 15-30s)';
+            actionContainer.appendChild(statusDiv);
+
+            try {
+                const res = await fetch(`${baseUrl}/api/upload?videoId=${videoId}`);
+                const json = await res.json();
+                
+                if (!json.success) throw new Error(json.error || 'Upload API failed');
+
+                actionContainer.innerHTML = `
+                    <div class="success-box">
+                        <strong style="color:#166534">✅ Successfully Uploaded to litterbox.catbox.moe</strong>
+                        <p style="margin: 0.5rem 0; font-size:0.9rem;">
+                            <strong>Stream URL:</strong> <a href="${json.data.stream_url}" target="_blank">Direct Stream</a><br>
+                            <em>Expires in ${json.data.expires_in}.</em>
+                        </p>
+                        <audio controls>
+                            <source src="${json.data.stream_url}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                `;
+            } catch (err) {
+                actionContainer.innerHTML = `<div class="error">Error: ${err.message}</div>`;
+                const retryBtn = document.createElement('button');
+                retryBtn.innerText = 'Retry Download';
+                retryBtn.style.marginTop = '0.5rem';
+                retryBtn.onclick = () => testDownload(videoId, btn);
+                actionContainer.appendChild(retryBtn);
+            }
+        }
+    </script>
+</body>
+</html>
