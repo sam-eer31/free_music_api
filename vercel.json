@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "api/download.js": {
+      "maxDuration": 60
+    },
+    "api/yt-search.js": {
+      "maxDuration": 15
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
+  ]
+}
