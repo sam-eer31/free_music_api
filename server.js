@@ -55,6 +55,7 @@ app.get('/api/download', (req, res) => {
     '-x',                        // extract audio
     '--audio-format', 'mp3',
     '--audio-quality', '0',      // best quality
+    '--extractor-args', 'youtube:client=android,ios', // SPOOF MOBILE CLIENT TO BYPASS BLOCKS
     '-o', '-',                   // output to stdout
     '--no-part',
     '--quiet',
