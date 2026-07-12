@@ -210,15 +210,19 @@ function App() {
         throw new Error("All download servers are busy. Please try again.");
       }
 
-      // We have the direct download URL! Trigger it.
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      // Using target _blank in case it's a stream that the browser tries to play
-      a.target = '_blank';
-      a.download = `${song.trackName} - ${song.artistName}.mp3`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // We have the direct download URL! Trigger it using a hidden iframe.
+      // Since this happens asynchronously after polling, using a.click() triggers the browser's pop-up blocker.
+      // An iframe seamlessly initiates the download without a warning.
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = downloadUrl;
+      document.body.appendChild(iframe);
+      // Clean up iframe after the download has had time to initiate
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 60000);
 
       setDownloadStates(prev => ({ ...prev, [id]: 'done' }));
       setTimeout(() => setDownloadStates(prev => ({ ...prev, [id]: 'idle' })), 2500);
