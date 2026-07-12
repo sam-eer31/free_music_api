@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Search, Loader2, Download, Music, Play, Pause, Clock } from 'lucide-react';
+import { Search, Loader2, Download, Music, Play, Pause, Clock, Settings, X } from 'lucide-react';
 import './index.css';
 
 interface Song {
@@ -18,11 +18,9 @@ type DownloadState = 'idle' | 'searching' | 'fetching' | 'done' | 'error';
 // Uses loader.to API to bypass Vercel backend limits entirely.
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-const PROXY = '';
-
-async function findYouTubeVideoId(query: string): Promise<{ videoId: string; duration: number }> {
+async function findYouTubeVideoId(query: string, proxyUrl: string): Promise<{ videoId: string; duration: number }> {
   const res = await fetch(
-    `${PROXY}/api/yt-search?q=${encodeURIComponent(query)}`,
+    `${proxyUrl}/api/yt-search?q=${encodeURIComponent(query)}`,
     { signal: AbortSignal.timeout(12000) }
   );
   if (!res.ok) {
@@ -55,8 +53,29 @@ function App() {
   const [progress, setProgress] = useState(0);       // 0–1
   const [currentSecs, setCurrentSecs] = useState(0);
   const [totalSecs, setTotalSecs] = useState(0);
+  
+  // Settings State
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [downloadEngine, setDownloadEngine] = useState<'render' | 'client'>(() => {
+    return (localStorage.getItem('downloadEngine') as 'render' | 'client') || 'render';
+  });
+  const [renderUrl, setRenderUrl] = useState(() => {
+    return localStorage.getItem('renderUrl') || 'https://your-app-name.onrender.com';
+  });
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const rafRef = useRef<number | null>(null);
+
+  // Save settings on change
+  useEffect(() => {
+    localStorage.setItem('downloadEngine', downloadEngine);
+    localStorage.setItem('renderUrl', renderUrl);
+  }, [downloadEngine, renderUrl]);
+
+  // Determine which proxy to use based on settings
+  // Localdev always uses '' so vite proxy catches it, otherwise use Render URL or Vercel ''
+  const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const proxyUrl = isLocalDev ? '' : (downloadEngine === 'render' ? renderUrl.replace(/\/$/, '') : '');
 
   // Tick animation frame to update progress bar smoothly
   const tick = useCallback(() => {
@@ -175,35 +194,39 @@ function App() {
 
     try {
       const searchQuery = `${song.trackName} ${song.artistName} official audio`;
-      const { videoId } = await findYouTubeVideoId(searchQuery);
+      const { videoId } = await findYouTubeVideoId(searchQuery, proxyUrl);
 
       setDownloadStates(prev => ({ ...prev, [id]: 'fetching' }));
 
       let downloadUrl = '';
 
-      // Cross the limits: completely bypass Vercel backend and use client-side polling via a tiny proxy
-      const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
-      const loaderApiUrl = `https://loader.to/ajax/download.php?button=1&start=1&end=1&format=mp3&url=${encodeURIComponent(ytUrl)}`;
-      
-      const initRes = await fetch(`${PROXY}/api/loader-proxy?url=${encodeURIComponent(loaderApiUrl)}`);
-      const initData = await initRes.json();
-
-      if (!initData.progress_url) {
-        throw new Error("Download servers are currently busy. Please try again.");
-      }
-
-      // Poll progress URL every 2 seconds until conversion finishes (max 60s)
-      for (let i = 0; i < 30; i++) {
-        await sleep(2000);
-        const progRes = await fetch(`${PROXY}/api/loader-proxy?url=${encodeURIComponent(initData.progress_url)}`);
-        const progData = await progRes.json();
+      if (downloadEngine === 'render' || isLocalDev) {
+        // Render Backend / Local Dev - Stream directly!
+        const title = encodeURIComponent(`${song.trackName} - ${song.artistName}`);
+        downloadUrl = `${proxyUrl}/api/download?videoId=${videoId}&title=${title}&t=${Date.now()}`;
+      } else {
+        // Client-side fallback (Vercel Backend bypass)
+        const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        const loaderApiUrl = `https://loader.to/ajax/download.php?button=1&start=1&end=1&format=mp3&url=${encodeURIComponent(ytUrl)}`;
         
-        if (progData.success === 1 && progData.download_url) {
-          downloadUrl = progData.download_url;
-          break;
+        const initRes = await fetch(`${proxyUrl}/api/loader-proxy?url=${encodeURIComponent(loaderApiUrl)}`);
+        const initData = await initRes.json();
+
+        if (!initData.progress_url) {
+          throw new Error("Download servers are currently busy. Please try again.");
         }
-        
-        // If it returns success: 0, it is still converting (progress shows in progData.progress)
+
+        // Poll progress URL every 2 seconds until conversion finishes (max 60s)
+        for (let i = 0; i < 30; i++) {
+          await sleep(2000);
+          const progRes = await fetch(`${proxyUrl}/api/loader-proxy?url=${encodeURIComponent(initData.progress_url)}`);
+          const progData = await progRes.json();
+          
+          if (progData.success === 1 && progData.download_url) {
+            downloadUrl = progData.download_url;
+            break;
+          }
+        }
       }
 
       if (!downloadUrl) {
@@ -269,9 +292,18 @@ function App() {
     <div className="app-container">
       {/* Header */}
       <header className="header" style={{ paddingTop: hasSearched ? '2rem' : '18vh', transition: 'padding 0.5s ease' }}>
-        <div className="brand">
-          <div className="brand-icon"><Music size={22} /></div>
-          <span className="brand-name">SoundDrop</span>
+        <div className="brand" style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="brand-icon"><Music size={22} /></div>
+            <span className="brand-name">SoundDrop</span>
+          </div>
+          <button 
+            className="settings-toggle"
+            onClick={() => setIsSettingsOpen(true)}
+            style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', padding: '0.5rem' }}
+          >
+            <Settings size={22} />
+          </button>
         </div>
         <form onSubmit={handleSearch} className="search-wrapper">
           <Search className="search-icon" size={18} strokeWidth={2.5} />
@@ -374,6 +406,73 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* Settings Modal */}
+      {isSettingsOpen && (
+        <div className="modal-overlay" onClick={() => setIsSettingsOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setIsSettingsOpen(false)}>
+              <X size={20} />
+            </button>
+            <h2 style={{ marginBottom: '1.5rem', color: '#1e1b4b', fontSize: '1.25rem' }}>Settings</h2>
+            
+            <div className="setting-group">
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', color: '#312e81' }}>Download Engine</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input 
+                    type="radio" 
+                    name="engine" 
+                    value="render" 
+                    checked={downloadEngine === 'render'} 
+                    onChange={() => setDownloadEngine('render')}
+                  />
+                  <div>
+                    <strong>Render Backend (Fast)</strong>
+                    <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.1rem' }}>Instant real-time downloads via yt-dlp.</div>
+                  </div>
+                </label>
+                
+                {downloadEngine === 'render' && (
+                  <div style={{ paddingLeft: '1.5rem', marginTop: '-0.25rem' }}>
+                    <input 
+                      type="url" 
+                      value={renderUrl} 
+                      onChange={e => setRenderUrl(e.target.value)}
+                      placeholder="https://your-app.onrender.com"
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #c7d2fe', fontSize: '0.85rem' }}
+                    />
+                    <div style={{ fontSize: '0.75rem', color: '#6366f1', marginTop: '0.3rem' }}>Paste your deployed Render Web Service URL here.</div>
+                  </div>
+                )}
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginTop: '0.5rem' }}>
+                  <input 
+                    type="radio" 
+                    name="engine" 
+                    value="client" 
+                    checked={downloadEngine === 'client'} 
+                    onChange={() => setDownloadEngine('client')}
+                  />
+                  <div>
+                    <strong>Client-Side Polling (Slow)</strong>
+                    <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.1rem' }}>Uses loader.to API. Bypasses Vercel limits. Takes 10-30s.</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '2rem', textAlign: 'right' }}>
+              <button 
+                onClick={() => setIsSettingsOpen(false)}
+                style={{ background: '#6366f1', color: 'white', padding: '0.5rem 1.5rem', borderRadius: '99px', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Save & Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
