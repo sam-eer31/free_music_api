@@ -415,7 +415,7 @@ function App() {
 
             <div className="api-section">
               <h3>3. Stream / Upload Endpoint</h3>
-              <p>Downloads the song and uploads it to litterbox (72-hour retention). Takes 15-30s to respond.</p>
+              <p>Downloads the song and uploads it to tmpfiles.org (exactly 48-hour retention). Takes 15-30s to respond.</p>
               <div className="code-block" style={{ marginBottom: '0.5rem' }}>GET https://your-render-url.onrender.com/api/upload?videoId=60ItHLz5WEA</div>
               <p style={{ fontSize: '0.85rem' }}><strong>Response:</strong></p>
               <pre className="code-block" style={{ marginTop: 0 }}>
@@ -423,8 +423,9 @@ function App() {
   "success": true,
   "data": {
     "videoId": "60ItHLz5WEA",
-    "stream_url": "https://litter.catbox.moe/hzowzp.mp3",
-    "expires_in": "72 hours"
+    "tmpfiles_url": "https://tmpfiles.org/12345/song.mp3",
+    "stream_url": "https://tmpfiles.org/dl/12345/song.mp3",
+    "expires_in": "48 hours"
   }
 }`}
               </pre>

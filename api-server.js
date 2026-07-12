@@ -79,35 +79,40 @@ app.get('/api/upload', async (req, res) => {
     const fileStream = fs.createWriteStream(tmpPath);
     await pipeline(dlRes.body, fileStream);
 
-    // 4. Upload to litterbox.catbox.moe (72h retention)
+    // 4. Upload to tmpfiles.org with 48h retention (172800 seconds)
     const fileBuffer = await fs.promises.readFile(tmpPath);
     const blob = new Blob([fileBuffer], { type: 'audio/mpeg' });
     
     const formData = new FormData();
-    formData.append('reqtype', 'fileupload');
-    formData.append('time', '72h');
-    formData.append('fileToUpload', blob, `audio_${videoId}.mp3`);
+    formData.append('file', blob, `audio_${videoId}.mp3`);
+    formData.append('expire', '172800'); // exactly 48 hours
 
-    const uploadRes = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
+    const uploadRes = await fetch('https://tmpfiles.org/api/v1/upload', {
       method: 'POST',
       body: formData
     });
     
-    const rawUrl = await uploadRes.text();
+    const uploadData = await uploadRes.json();
     
     // 5. Cleanup temp file
     await fs.promises.unlink(tmpPath).catch(() => {});
 
-    if (!rawUrl.startsWith('https://')) {
-      throw new Error("Failed to upload to litterbox: " + rawUrl);
+    if (uploadData.status !== 'success') {
+      throw new Error("Failed to upload to tmpfiles.org");
     }
+
+    // tmpfiles returns URL like https://tmpfiles.org/12345/file.mp3
+    // Direct stream URL is https://tmpfiles.org/dl/12345/file.mp3
+    const publicUrl = uploadData.data.url;
+    const streamUrl = publicUrl.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
 
     res.json({
       success: true,
       data: {
         videoId,
-        stream_url: rawUrl.trim(),
-        expires_in: '72 hours'
+        tmpfiles_url: publicUrl,
+        stream_url: streamUrl,
+        expires_in: '48 hours'
       }
     });
 
