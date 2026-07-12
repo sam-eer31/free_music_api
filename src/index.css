@@ -472,3 +472,30 @@ body::before {
   .dl-btn span { display: none; }
   .dl-btn { padding: 0.45rem 0.65rem; }
 }
+
+/* Modal / API Docs */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.modal-content {
+  background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 650px;
+  max-height: 85vh; overflow-y: auto; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+.modal-close {
+  position: absolute; top: 1.25rem; right: 1.25rem; background: none; border: none;
+  cursor: pointer; color: #9ca3af; padding: 0.5rem;
+}
+.modal-close:hover { color: #4b5563; }
+.api-docs-modal h2 { margin-top: 0; color: #1e1b4b; font-size: 1.5rem; }
+.api-section { margin-top: 1.75rem; }
+.api-section h3 { margin-bottom: 0.75rem; color: #312e81; font-size: 1.1rem; }
+.api-section p { margin-bottom: 0.75rem; color: #4b5563; font-size: 0.95rem; line-height: 1.6; }
+.api-section ol { color: #4b5563; font-size: 0.95rem; padding-left: 1.25rem; line-height: 1.6; }
+.api-section li { margin-bottom: 0.25rem; }
+.code-block {
+  background: #1e293b; color: #f8fafc; padding: 1rem; border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
+  font-size: 0.9rem; overflow-x: auto; line-height: 1.5; border: 1px solid #334155;
+}

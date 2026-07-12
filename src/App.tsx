@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Search, Loader2, Download, Music, Play, Pause, Clock } from 'lucide-react';
+import { Search, Loader2, Download, Music, Play, Pause, Clock, Code, X } from 'lucide-react';
 import './index.css';
 
 interface Song {
@@ -54,6 +54,8 @@ function App() {
   const [currentSecs, setCurrentSecs] = useState(0);
   const [totalSecs, setTotalSecs] = useState(0);
   
+  const [isApiDocsOpen, setIsApiDocsOpen] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -266,9 +268,20 @@ function App() {
     <div className="app-container">
       {/* Header */}
       <header className="header" style={{ paddingTop: hasSearched ? '2rem' : '18vh', transition: 'padding 0.5s ease' }}>
-        <div className="brand">
-          <div className="brand-icon"><Music size={22} /></div>
-          <span className="brand-name">SoundDrop</span>
+        <div className="brand" style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="brand-icon"><Music size={22} /></div>
+            <span className="brand-name">SoundDrop</span>
+          </div>
+          <button 
+            className="api-docs-toggle"
+            onClick={() => setIsApiDocsOpen(true)}
+            title="Public API Documentation"
+            style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}
+          >
+            <Code size={22} />
+            <span className="api-btn-text">API</span>
+          </button>
         </div>
         <form onSubmit={handleSearch} className="search-wrapper">
           <Search className="search-icon" size={18} strokeWidth={2.5} />
@@ -371,6 +384,54 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* API Docs Modal */}
+      {isApiDocsOpen && (
+        <div className="modal-overlay" onClick={() => setIsApiDocsOpen(false)}>
+          <div className="modal-content api-docs-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setIsApiDocsOpen(false)}>
+              <X size={20} />
+            </button>
+            <h2>SoundDrop Public API</h2>
+            <p style={{ color: '#4b5563', lineHeight: '1.5', marginTop: '0.5rem' }}>
+              SoundDrop offers a free, public API that allows any website to search for music and generate direct MP3 streaming links.
+            </p>
+            
+            <div className="api-section">
+              <h3>1. Deploy Your API Backend</h3>
+              <p>To use this API, you must deploy the backend to Render (it's free and prevents the 10-second serverless timeout). This backend uses proxy networks to ensure it never gets blocked by YouTube.</p>
+              <ol>
+                <li>Go to <a href="https://dashboard.render.com" target="_blank" rel="noreferrer" style={{ color: '#4f46e5', textDecoration: 'underline' }}>Render.com</a> and create a <strong>New Web Service</strong>.</li>
+                <li>Connect this GitHub repository.</li>
+                <li>Select the <strong>Free</strong> tier and deploy.</li>
+              </ol>
+            </div>
+
+            <div className="api-section">
+              <h3>2. Search Endpoint</h3>
+              <p>Returns the top 10 results for a given query.</p>
+              <div className="code-block">GET https://your-render-url.onrender.com/api/search?q=faded</div>
+            </div>
+
+            <div className="api-section">
+              <h3>3. Stream / Upload Endpoint</h3>
+              <p>Downloads the song and uploads it to litterbox (72-hour retention). Takes 15-30s to respond.</p>
+              <div className="code-block" style={{ marginBottom: '0.5rem' }}>GET https://your-render-url.onrender.com/api/upload?videoId=60ItHLz5WEA</div>
+              <p style={{ fontSize: '0.85rem' }}><strong>Response:</strong></p>
+              <pre className="code-block" style={{ marginTop: 0 }}>
+{`{
+  "success": true,
+  "data": {
+    "videoId": "60ItHLz5WEA",
+    "stream_url": "https://litter.catbox.moe/hzowzp.mp3",
+    "expires_in": "72 hours"
+  }
+}`}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
