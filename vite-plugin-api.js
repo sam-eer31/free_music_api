@@ -41,6 +41,28 @@ export function apiPlugin() {
         }
       });
 
+      // GET /api/loader-proxy?url=...
+      server.middlewares.use('/api/loader-proxy', async (req, res) => {
+        const { query } = parse(req.url, true);
+        const urlToFetch = query.url;
+        if (!urlToFetch) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'Missing url parameter' }));
+        }
+        
+        try {
+          // Dynamic import for fetch since it's global in newer Node, but just to be safe
+          const response = await fetch(String(urlToFetch));
+          const data = await response.json();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(data));
+        } catch (err) {
+          console.error('[api/loader-proxy]', err);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: String(err) }));
+        }
+      });
+
       // GET /api/download?videoId=...&title=...
       // Spawns yt-dlp to extract + convert audio to MP3, piped directly to response
       server.middlewares.use('/api/download', (req, res) => {

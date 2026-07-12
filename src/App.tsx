@@ -181,9 +181,11 @@ function App() {
 
       let downloadUrl = '';
 
-      // Cross the limits: completely bypass Vercel backend and use client-side polling
+      // Cross the limits: completely bypass Vercel backend and use client-side polling via a tiny proxy
       const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
-      const initRes = await fetch(`https://loader.to/ajax/download.php?button=1&start=1&end=1&format=mp3&url=${encodeURIComponent(ytUrl)}`);
+      const loaderApiUrl = `https://loader.to/ajax/download.php?button=1&start=1&end=1&format=mp3&url=${encodeURIComponent(ytUrl)}`;
+      
+      const initRes = await fetch(`${PROXY}/api/loader-proxy?url=${encodeURIComponent(loaderApiUrl)}`);
       const initData = await initRes.json();
 
       if (!initData.progress_url) {
@@ -193,7 +195,7 @@ function App() {
       // Poll progress URL every 2 seconds until conversion finishes (max 60s)
       for (let i = 0; i < 30; i++) {
         await sleep(2000);
-        const progRes = await fetch(initData.progress_url);
+        const progRes = await fetch(`${PROXY}/api/loader-proxy?url=${encodeURIComponent(initData.progress_url)}`);
         const progData = await progRes.json();
         
         if (progData.success === 1 && progData.download_url) {
