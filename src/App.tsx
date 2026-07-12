@@ -15,14 +15,8 @@ interface Song {
 
 type DownloadState = 'idle' | 'searching' | 'fetching' | 'done' | 'error';
 
-// Public Cobalt instances to bypass Vercel backend limits entirely.
-// By doing this client-side, we avoid Vercel's 10s timeout and 4.5MB payload limits.
-const COBALT_INSTANCES = [
-  'https://cobalt-api.kwiatekmateusz.com',
-  'https://co.wuk.sh',
-  'https://cobalt.q0.is',
-  'https://api.cobalt.tools'
-];
+// Uses loader.to API to bypass Vercel backend limits entirely.
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 const PROXY = '';
 
@@ -187,33 +181,27 @@ function App() {
 
       let downloadUrl = '';
 
-      // Cross the limits: completely bypass Vercel backend and use client-side APIs
-      for (const instance of COBALT_INSTANCES) {
-        try {
-          const res = await fetch(`${instance}/api/json`, {
-            method: 'POST',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              url: `https://www.youtube.com/watch?v=${videoId}`,
-              downloadMode: 'audio',
-              audioFormat: 'mp3',
-              filenamePattern: 'nerdy'
-            })
-          });
+      // Cross the limits: completely bypass Vercel backend and use client-side polling
+      const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      const initRes = await fetch(`https://loader.to/ajax/download.php?button=1&start=1&end=1&format=mp3&url=${encodeURIComponent(ytUrl)}`);
+      const initData = await initRes.json();
 
-          if (!res.ok) continue;
+      if (!initData.progress_url) {
+        throw new Error("Download servers are currently busy. Please try again.");
+      }
 
-          const data = await res.json();
-          if (data.url || data.stream) {
-            downloadUrl = data.url || data.stream;
-            break; // Found a working instance
-          }
-        } catch (e) {
-          console.warn(`[cobalt] ${instance} failed, trying next...`);
+      // Poll progress URL every 2 seconds until conversion finishes (max 60s)
+      for (let i = 0; i < 30; i++) {
+        await sleep(2000);
+        const progRes = await fetch(initData.progress_url);
+        const progData = await progRes.json();
+        
+        if (progData.success === 1 && progData.download_url) {
+          downloadUrl = progData.download_url;
+          break;
         }
+        
+        // If it returns success: 0, it is still converting (progress shows in progData.progress)
       }
 
       if (!downloadUrl) {
