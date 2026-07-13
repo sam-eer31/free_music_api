@@ -15,12 +15,11 @@ interface Song {
 
 type DownloadState = 'idle' | 'searching' | 'fetching' | 'done' | 'error';
 
-// Uses loader.to API to bypass Vercel backend limits entirely.
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 
 async function findYouTubeVideoId(query: string): Promise<{ videoId: string; duration: number }> {
   const res = await fetch(
-    `/api/yt-search?q=${encodeURIComponent(query)}`,
+    `https://free-music-api-p6hi.onrender.com/api/search?q=${encodeURIComponent(query)}`,
     { signal: AbortSignal.timeout(12000) }
   );
   if (!res.ok) {
@@ -28,8 +27,11 @@ async function findYouTubeVideoId(query: string): Promise<{ videoId: string; dur
     throw new Error(err.error ?? `YouTube search failed (HTTP ${res.status})`);
   }
   const data = await res.json();
-  if (!data.videoId) throw new Error('No video found for this song.');
-  return { videoId: data.videoId, duration: data.duration ?? 0 };
+  if (!data.success || !data.data || data.data.length === 0) {
+    throw new Error('No video found for this song.');
+  }
+  const video = data.data[0];
+  return { videoId: video.videoId, duration: video.duration ?? 0 };
 }
 
 function formatSecs(secs: number): string {
@@ -180,34 +182,17 @@ function App() {
 
       setDownloadStates(prev => ({ ...prev, [id]: 'fetching' }));
 
-      let downloadUrl = '';
-
-      // Client-side fallback (Vercel Backend bypass)
-      const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
-      const loaderApiUrl = `https://loader.to/ajax/download.php?button=1&start=1&end=1&format=mp3&url=${encodeURIComponent(ytUrl)}`;
-      
-      const initRes = await fetch(`/api/loader-proxy?url=${encodeURIComponent(loaderApiUrl)}`);
-      const initData = await initRes.json();
-
-      if (!initData.progress_url) {
-        throw new Error("Download servers are currently busy. Please try again.");
+      const uploadRes = await fetch(`https://free-music-api-p6hi.onrender.com/api/upload?videoId=${videoId}`);
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => ({}));
+        throw new Error(err.error ?? `Upload failed (HTTP ${uploadRes.status})`);
+      }
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success || !uploadData.data?.stream_url) {
+        throw new Error("Invalid response from Free API");
       }
 
-      // Poll progress URL every 2 seconds until conversion finishes (max 60s)
-      for (let i = 0; i < 30; i++) {
-        await sleep(2000);
-        const progRes = await fetch(`/api/loader-proxy?url=${encodeURIComponent(initData.progress_url)}`);
-        const progData = await progRes.json();
-        
-        if (progData.success === 1 && progData.download_url) {
-          downloadUrl = progData.download_url;
-          break;
-        }
-      }
-
-      if (!downloadUrl) {
-        throw new Error("All download servers are busy. Please try again.");
-      }
+      const downloadUrl = uploadData.data.stream_url;
 
       // We have the direct download URL! Trigger it using a hidden iframe.
       // Since this happens asynchronously after polling, using a.click() triggers the browser's pop-up blocker.
