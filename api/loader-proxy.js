@@ -12,9 +12,22 @@ export default async function handler(req, res) {
   if (!url) return res.status(400).json({ error: 'Missing url parameter' });
 
   try {
-    // Only allow proxying to loader.to or its progress servers for security
-    if (!url.includes('loader.to') && !url.includes('affadaffa.com')) {
+    // Only allow proxying to loader.to, affadaffa.com, or tmpfiles.org
+    if (!url.includes('loader.to') && !url.includes('affadaffa.com') && !url.includes('tmpfiles.org')) {
        return res.status(403).json({ error: 'Forbidden domain' });
+    }
+
+    if (url.includes('tmpfiles.org')) {
+      const checkRes = await fetch(url);
+      const contentType = checkRes.headers.get('Content-Type') || '';
+      if (contentType.includes('text/html')) {
+        const html = await checkRes.text();
+        const match = html.match(/href="([^"]+tmpfiles\.org\/dl\/[^"]+)"/);
+        if (match && match[1]) {
+          return res.status(200).json({ success: true, download_url: match[1] });
+        }
+      }
+      return res.status(400).json({ error: 'Could not resolve tmpfiles download link' });
     }
 
     const response = await fetch(url);

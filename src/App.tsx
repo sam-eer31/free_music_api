@@ -194,9 +194,19 @@ function App() {
 
       const downloadUrl = uploadData.data.stream_url;
 
-      // We have the direct download URL! Trigger it.
-      // Using window.location.href avoids iframe blocking by ad blockers (net::ERR_BLOCKED_BY_CLIENT).
-      window.location.href = downloadUrl;
+      // Resolve the actual direct download file URL by proxying and parsing the tmpfiles HTML landing page.
+      const resolveRes = await fetch(`/api/loader-proxy?url=${encodeURIComponent(downloadUrl)}`);
+      if (!resolveRes.ok) {
+        throw new Error("Failed to resolve direct download link");
+      }
+      const resolveData = await resolveRes.json();
+      if (!resolveData.download_url) {
+        throw new Error("Could not find direct download link in resolved response");
+      }
+      const directUrl = resolveData.download_url;
+
+      // Trigger the direct file download, which will download immediately without redirecting the page.
+      window.location.href = directUrl;
 
       setDownloadStates(prev => ({ ...prev, [id]: 'done' }));
       setTimeout(() => setDownloadStates(prev => ({ ...prev, [id]: 'idle' })), 2500);
