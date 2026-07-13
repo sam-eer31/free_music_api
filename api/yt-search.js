@@ -1,4 +1,4 @@
-import ytSearch from 'yt-search';
+import play from 'play-dl';
 
 export default async function handler(req, res) {
   // CORS headers so the Vite dev server can reach this
@@ -10,14 +10,14 @@ export default async function handler(req, res) {
   if (!q) return res.status(400).json({ error: 'Missing query param: q' });
 
   try {
-    const result = await ytSearch(String(q));
-    const video = result.videos[0];
+    const result = await play.search(String(q), { limit: 1 });
+    const video = result[0];
     if (!video) return res.status(404).json({ error: 'No results found' });
     res.json({
-      videoId: video.videoId,
+      videoId: video.id,
       title: video.title,
-      author: video.author.name,
-      duration: video.duration.seconds,
+      author: video.channel?.name || 'Unknown',
+      duration: video.durationInSec,
     });
   } catch (err) {
     console.error('[yt-search]', err);

@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import ytSearch from 'yt-search';
+import play from 'play-dl';
 import fs from 'fs';
 import path from 'path';
 import { pipeline } from 'stream/promises';
@@ -20,12 +20,12 @@ app.get('/api/search', async (req, res) => {
   if (!q) return res.status(400).json({ success: false, error: 'Missing query param: q' });
 
   try {
-    const result = await ytSearch(String(q));
-    const videos = result.videos.slice(0, 10).map(v => ({
-      videoId: v.videoId,
+    const result = await play.search(String(q), { limit: 10 });
+    const videos = result.map(v => ({
+      videoId: v.id,
       title: v.title,
-      author: v.author.name,
-      duration: v.duration.seconds
+      author: v.channel?.name || 'Unknown',
+      duration: v.durationInSec
     }));
     
     res.json({ success: true, data: videos });

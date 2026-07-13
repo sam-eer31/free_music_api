@@ -2,7 +2,7 @@
 // Handles /api/ routes inside the Vite dev server so npm run dev is all you need.
 // Uses yt-search for search and yt-dlp (installed on machine) for audio.
 
-import ytSearch from 'yt-search';
+import play from 'play-dl';
 import { spawn } from 'child_process';
 import { parse } from 'url';
 
@@ -21,18 +21,18 @@ export function apiPlugin() {
           return res.end(JSON.stringify({ error: 'Missing q' }));
         }
         try {
-          const result = await ytSearch(String(q));
-          const video = result.videos[0];
+          const result = await play.search(String(q), { limit: 1 });
+          const video = result[0];
           if (!video) {
             res.writeHead(404, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ error: 'No results found' }));
           }
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
-            videoId: video.videoId,
+            videoId: video.id,
             title: video.title,
-            author: video.author.name,
-            duration: video.duration.seconds,
+            author: video.channel?.name || 'Unknown',
+            duration: video.durationInSec,
           }));
         } catch (err) {
           console.error('[api/yt-search]', err);
