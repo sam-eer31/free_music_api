@@ -194,19 +194,9 @@ function App() {
 
       const downloadUrl = uploadData.data.stream_url;
 
-      // We have the direct download URL! Trigger it using a hidden iframe.
-      // Since this happens asynchronously after polling, using a.click() triggers the browser's pop-up blocker.
-      // An iframe seamlessly initiates the download without a warning.
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = downloadUrl;
-      document.body.appendChild(iframe);
-      // Clean up iframe after the download has had time to initiate
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 60000);
+      // We have the direct download URL! Trigger it.
+      // Using window.location.href avoids iframe blocking by ad blockers (net::ERR_BLOCKED_BY_CLIENT).
+      window.location.href = downloadUrl;
 
       setDownloadStates(prev => ({ ...prev, [id]: 'done' }));
       setTimeout(() => setDownloadStates(prev => ({ ...prev, [id]: 'idle' })), 2500);
