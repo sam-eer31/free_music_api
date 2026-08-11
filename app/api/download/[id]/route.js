@@ -14,11 +14,7 @@ export async function GET(request, { params }) {
   }
 
   try {
-    let downloadUrl = `https://pagalnew.com/320-download/${id}`;
-    
-    if (process.env.ZENROWS_API_KEY) {
-      downloadUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(downloadUrl)}&premium_proxy=true`;
-    }
+    const downloadUrl = `https://pagalnew.com/320-download/${id}`;
 
     const response = await fetch(downloadUrl, {
       headers: {
@@ -57,7 +53,7 @@ export async function GET(request, { params }) {
   } catch (error) {
     console.error("Download error:", error.message);
     return NextResponse.json(
-      { error: "Failed to download song. Please try again." },
+      { error: `API Error: ${error.message}` },
       { status: 500 }
     );
   }

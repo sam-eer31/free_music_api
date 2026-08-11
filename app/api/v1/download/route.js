@@ -66,11 +66,7 @@ export async function GET(request) {
     }
 
     // 2. Download the MP3 file into memory
-    let downloadUrl = `https://pagalnew.com/320-download/${downloadId}`;
-    
-    if (process.env.ZENROWS_API_KEY) {
-      downloadUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(downloadUrl)}&premium_proxy=true`;
-    }
+    const downloadUrl = `https://pagalnew.com/320-download/${downloadId}`;
 
     const fileRes = await fetch(downloadUrl, {
       headers: {

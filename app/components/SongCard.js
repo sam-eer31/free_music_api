@@ -26,7 +26,17 @@ export default function SongCard({ song, index }) {
       // Step 2: Trigger the download via our proxy and wait for it
       const downloadUrl = `/api/download/${songData.downloadId}`;
       const response = await fetch(downloadUrl);
-      if (!response.ok) throw new Error("Download failed");
+      let errorMsg = "Download failed";
+      try {
+        const errorData = await response.json();
+        if (errorData.error) errorMsg = errorData.error;
+      } catch (e) {
+        // Not JSON
+      }
+
+      if (!response.ok) {
+        throw new Error(errorMsg);
+      }
       
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
