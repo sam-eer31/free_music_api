@@ -580,6 +580,7 @@ input {
 .download-btn--loading {
   pointer-events: none;
   box-shadow: var(--glass-inset-shadow);
+  background: var(--accent-gradient);
 }
 
 .download-btn--loading svg {
