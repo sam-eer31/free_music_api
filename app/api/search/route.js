@@ -20,7 +20,7 @@ export async function GET(request) {
     
     // Route through ZenRows if API key is present
     if (process.env.ZENROWS_API_KEY) {
-      targetUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(targetUrl)}`;
+      targetUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(targetUrl)}&premium_proxy=true`;
     }
 
     const response = await fetch(targetUrl, {

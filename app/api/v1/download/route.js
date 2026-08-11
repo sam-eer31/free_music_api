@@ -20,7 +20,7 @@ export async function GET(request) {
     let songUrl = `https://pagalnew.com/songs/${slug}.html`;
     
     if (process.env.ZENROWS_API_KEY) {
-      songUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(songUrl)}`;
+      songUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(songUrl)}&premium_proxy=true`;
     }
 
     const songRes = await fetch(songUrl, {
@@ -69,7 +69,7 @@ export async function GET(request) {
     let downloadUrl = `https://pagalnew.com/320-download/${downloadId}`;
     
     if (process.env.ZENROWS_API_KEY) {
-      downloadUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(downloadUrl)}`;
+      downloadUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(downloadUrl)}&premium_proxy=true`;
     }
 
     const fileRes = await fetch(downloadUrl, {
