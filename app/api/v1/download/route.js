@@ -17,7 +17,12 @@ export async function GET(request) {
 
   try {
     // 1. Fetch song page to get downloadId
-    const songUrl = `https://pagalnew.com/songs/${slug}.html`;
+    let songUrl = `https://pagalnew.com/songs/${slug}.html`;
+    
+    if (process.env.ZENROWS_API_KEY) {
+      songUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(songUrl)}`;
+    }
+
     const songRes = await fetch(songUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -61,7 +66,12 @@ export async function GET(request) {
     }
 
     // 2. Download the MP3 file into memory
-    const downloadUrl = `https://pagalnew.com/320-download/${downloadId}`;
+    let downloadUrl = `https://pagalnew.com/320-download/${downloadId}`;
+    
+    if (process.env.ZENROWS_API_KEY) {
+      downloadUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(downloadUrl)}`;
+    }
+
     const fileRes = await fetch(downloadUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",

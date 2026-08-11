@@ -16,7 +16,13 @@ export async function GET(request) {
   }
 
   try {
-    const targetUrl = `https://pagalnew.com/search.php?find=${encodeURIComponent(query.trim())}`;
+    let targetUrl = `https://pagalnew.com/search.php?find=${encodeURIComponent(query.trim())}`;
+    
+    // Route through ZenRows if API key is present
+    if (process.env.ZENROWS_API_KEY) {
+      targetUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(targetUrl)}`;
+    }
+
     const response = await fetch(targetUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",

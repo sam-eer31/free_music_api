@@ -14,7 +14,11 @@ export async function GET(request, { params }) {
   }
 
   try {
-    const downloadUrl = `https://pagalnew.com/320-download/${id}`;
+    let downloadUrl = `https://pagalnew.com/320-download/${id}`;
+    
+    if (process.env.ZENROWS_API_KEY) {
+      downloadUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(downloadUrl)}`;
+    }
 
     const response = await fetch(downloadUrl, {
       headers: {
