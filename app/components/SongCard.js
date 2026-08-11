@@ -44,23 +44,7 @@ export default function SongCard({ song, index }) {
     <div className="song-card" style={{ animationDelay }}>
       {/* Cover Image */}
       <div className="song-card__image-wrapper">
-        {song.image ? (
-          <img
-            className="song-card__image"
-            src={song.image}
-            alt={song.songName || "Song cover"}
-            loading="lazy"
-            onError={(e) => {
-              // Replace broken image with placeholder
-              e.target.style.display = "none";
-              e.target.nextElementSibling.style.display = "flex";
-            }}
-          />
-        ) : null}
-        <div
-          className="song-card__image-placeholder"
-          style={{ display: song.image ? "none" : "flex" }}
-        >
+        <div className="song-card__image-placeholder" style={{ display: "flex" }}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
