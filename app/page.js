@@ -9,10 +9,10 @@ export default function Home() {
             <img src="/logo.svg" alt="TuneBox Logo" style={{ width: "42px", height: "42px", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))" }} />
           </div>
           <h1 className="hero__title">
-            <span className="hero__title-accent">TuneBox</span> Search
+            <span className="hero__title-accent">Tune</span><span style={{ color: "black" }}>Box</span>
           </h1>
           <p className="hero__subtitle">
-            Search and download your favorite songs in high quality 320kbps
+            Search and download your favorite songs in high quality
           </p>
         </section>
 

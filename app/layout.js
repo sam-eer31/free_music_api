@@ -1,11 +1,11 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "TuneBox Search — Download Songs in 320kbps",
+  title: "TuneBox — Download Songs",
   description:
-    "Search and download your favorite songs in high quality 320kbps MP3 format.",
+    "Search and download your favorite songs in high quality MP3 format.",
   keywords:
-    "mp3 download, bollywood songs, punjabi songs, hindi songs, 320kbps, music download",
+    "mp3 download, bollywood songs, punjabi songs, hindi songs, music download",
 };
 
 export default function RootLayout({ children }) {
