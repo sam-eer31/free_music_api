@@ -575,7 +575,7 @@ input {
 
 .download-btn--loading svg {
   animation: spin 800ms linear infinite;
-  color: var(--deep-rose);
+  color: var(--white);
 }
 
 .download-btn--success {
@@ -797,6 +797,10 @@ input {
    RESPONSIVE
    ====================== */
 @media (max-width: 640px) {
+  .container {
+    padding: 0 var(--space-md);
+  }
+
   .hero {
     padding: var(--space-2xl) 0 var(--space-md);
   }
