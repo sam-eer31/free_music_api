@@ -65,59 +65,27 @@ export async function GET(request) {
       );
     }
 
-    // 2. Download the MP3 file into memory
     const downloadUrl = `https://pagalnew.com/320-download/${downloadId}`;
 
-    const fileRes = await fetch(downloadUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "*/*",
-        "Referer": "https://pagalnew.com/",
-      },
-    });
-
-    if (!fileRes.ok) {
-      throw new Error(`Failed to download audio: ${fileRes.status} ${fileRes.statusText}`);
-    }
-
-    const arrayBuffer = await fileRes.arrayBuffer();
-
-    // 3. Upload to tmpfiles.org
-    const formData = new FormData();
-    const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
-    formData.append("file", blob, `${slug}.mp3`);
-    formData.append("expire", "172800"); // 48 hours
-
-    const tmRes = await fetch("https://tmpfiles.org/api/v1/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!tmRes.ok) {
-      throw new Error("Failed to upload to tmpfiles.org");
-    }
-
-    const tmData = await tmRes.json();
+    // Note: Due to Cloudflare blocks and ZenRows 2MB file size limits on free plans,
+    // Vercel serverless functions cannot successfully download 5-10MB MP3 files from Pagalnew
+    // to upload them to tmpfiles.org. 
+    // Therefore, this API now returns the direct Pagalnew download link instead.
     
-    // tmData.data.url looks like "https://tmpfiles.org/12345/song.mp3"
-    // The actual direct download page/link is "https://tmpfiles.org/dl/12345/song.mp3"
-    let finalUrl = tmData?.data?.url;
-    if (finalUrl) {
-      finalUrl = finalUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
-    } else {
-      throw new Error("Invalid response from tmpfiles.org");
-    }
-
     return NextResponse.json({
       success: true,
-      message: "Song downloaded and uploaded to tmpfiles.org successfully",
-      expires_in: "48 hours",
-      downloadUrl: finalUrl,
+      message: "Direct download link retrieved successfully.",
+      data: {
+        songName,
+        artist,
+        downloadUrl: downloadUrl,
+        expiresIn: "Unlimited (Direct Link)",
+      },
     });
   } catch (error) {
-    console.error("V1 Download error:", error.message);
+    console.error("V1 Download Error:", error.message);
     return NextResponse.json(
-      { success: false, error: "Failed to process download. Please try again." },
+      { error: `Failed to process download: ${error.message}` },
       { status: 500 }
     );
   }

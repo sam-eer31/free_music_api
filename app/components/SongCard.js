@@ -19,38 +19,14 @@ export default function SongCard({ song, index }) {
 
       const songData = await songRes.json();
 
-      if (!songData.downloadId) {
-        throw new Error("Download link not found");
-      }
-
-      // Step 2: Trigger the download via our proxy and wait for it
+      // We cannot fetch the file via the API because Vercel IPs are blocked by Cloudflare.
+      // Instead, we navigate the browser to our API endpoint which will issue a 302 Redirect
+      // directly to the Pagalnew MP3 link. This forces the browser (residential IP) to 
+      // download it without triggering Cloudflare blocks.
       const downloadUrl = `/api/download/${songData.downloadId}`;
-      const response = await fetch(downloadUrl);
-      if (!response.ok) {
-        let errorMsg = "Download failed";
-        try {
-          const errorData = await response.json();
-          if (errorData.error) errorMsg = errorData.error;
-        } catch (e) {
-          // Not JSON
-        }
-        throw new Error(errorMsg);
-      }
+      window.location.href = downloadUrl;
       
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      // Create a temporary link to trigger browser download
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = `${song.songName || "song"}.mp3`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up the blob URL
-      URL.revokeObjectURL(blobUrl);
-
+      // Briefly show success state before the browser handles the download
       setDownloaded(true);
       setTimeout(() => setDownloaded(false), 3000);
     } catch (err) {

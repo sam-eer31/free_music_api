@@ -1,60 +1,17 @@
 import { NextResponse } from "next/server";
-import axios from "axios";
 
 export const maxDuration = 60; // 60 seconds limit for Vercel
 
 export async function GET(request, { params }) {
   const { id } = await params;
 
-  if (!id || !/^\d+$/.test(id)) {
-    return NextResponse.json(
-      { error: "Valid numeric download ID is required" },
-      { status: 400 }
-    );
+  if (!id) {
+    return NextResponse.json({ error: "Download ID required" }, { status: 400 });
   }
 
-  try {
-    const downloadUrl = `https://pagalnew.com/320-download/${id}`;
-
-    const response = await fetch(downloadUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "*/*",
-        "Referer": "https://pagalnew.com/",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to download audio: ${response.status} ${response.statusText}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-
-    // Get the filename from content-disposition header if available
-    let filename = `song-${id}.mp3`;
-    const contentDisposition = response.headers.get("content-disposition");
-    if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(
-        /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
-      );
-      if (filenameMatch && filenameMatch[1]) {
-        filename = filenameMatch[1].replace(/['"]/g, "").trim();
-      }
-    }
-
-    return new NextResponse(arrayBuffer, {
-      status: 200,
-      headers: {
-        "Content-Type": "audio/mpeg",
-        "Content-Disposition": `attachment; filename="${filename}"`,
-        "Content-Length": arrayBuffer.byteLength.toString(),
-      },
-    });
-  } catch (error) {
-    console.error("Download error:", error.message);
-    return NextResponse.json(
-      { error: `API Error: ${error.message}` },
-      { status: 500 }
-    );
-  }
+  // Redirect the user directly to the Pagalnew download link.
+  // We cannot proxy it through Vercel because Cloudflare blocks Vercel IPs (403),
+  // and ZenRows proxy has a 2MB size limit on free plans which fails for MP3s (413).
+  // By redirecting, the user's browser (residential IP) downloads it directly.
+  return NextResponse.redirect(`https://pagalnew.com/320-download/${id}`);
 }

@@ -11,21 +11,28 @@ export async function GET(request) {
 
   try {
     // Construct the URL internally so the domain is never exposed to the client
-    const targetUrl = `https://pagalnew.com/${path}`;
+    let targetUrl = `https://pagalnew.com/${path}`;
     
-    const response = await axios.get(targetUrl, {
-      responseType: "arraybuffer",
+    if (process.env.ZENROWS_API_KEY) {
+      targetUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(targetUrl)}&premium_proxy=true`;
+    }
+    
+    const response = await fetch(targetUrl, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Referer: "https://pagalnew.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://pagalnew.com/",
       },
-      timeout: 15000,
     });
 
-    const contentType = response.headers["content-type"] || "image/jpeg";
+    if (!response.ok) {
+      throw new Error(`Image fetch failed: ${response.status}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+
+    const contentType = response.headers.get("content-type") || "image/jpeg";
     
-    return new NextResponse(response.data, {
+    return new NextResponse(arrayBuffer, {
       status: 200,
       headers: {
         "Content-Type": contentType,
