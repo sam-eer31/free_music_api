@@ -27,11 +27,16 @@ export default function SearchApp() {
         `/api/search?q=${encodeURIComponent(trimmed)}`
       );
 
-      if (!res.ok) {
-        throw new Error("Search failed. Please try again.");
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        // Not JSON
       }
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Search failed. Please try again.");
+      }
       setResults(data.results || []);
     } catch (err) {
       console.error("Search error:", err);

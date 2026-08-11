@@ -134,7 +134,7 @@ export async function GET(request) {
   } catch (error) {
     console.error("Search error:", error.message);
     return NextResponse.json(
-      { error: "Failed to fetch search results. Please try again." },
+      { error: `API Error: ${error.message}` },
       { status: 500 }
     );
   }
