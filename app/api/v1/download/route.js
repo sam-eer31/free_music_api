@@ -17,15 +17,22 @@ export async function GET(request) {
 
   try {
     // 1. Fetch song page to get downloadId
-    const songRes = await axios.get(`https://pagalnew.com/songs/${slug}.html`, {
+    const songUrl = `https://pagalnew.com/songs/${slug}.html`;
+    const songRes = await fetch(songUrl, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Cache-Control": "no-cache",
       },
-      timeout: 10000,
     });
 
-    const $ = cheerio.load(songRes.data);
+    if (!songRes.ok) {
+      throw new Error(`Pagalnew responded with status ${songRes.status} ${songRes.statusText}`);
+    }
+
+    const htmlData = await songRes.text();
+    const $ = cheerio.load(htmlData);
     let downloadId = null;
 
     $('a[href*="320-download/"]').each((_, el) => {
@@ -55,20 +62,23 @@ export async function GET(request) {
 
     // 2. Download the MP3 file into memory
     const downloadUrl = `https://pagalnew.com/320-download/${downloadId}`;
-    const fileRes = await axios.get(downloadUrl, {
-      responseType: "arraybuffer",
+    const fileRes = await fetch(downloadUrl, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Referer: "https://pagalnew.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+        "Referer": "https://pagalnew.com/",
       },
-      timeout: 30000,
-      maxRedirects: 5,
     });
+
+    if (!fileRes.ok) {
+      throw new Error(`Failed to download audio: ${fileRes.status} ${fileRes.statusText}`);
+    }
+
+    const arrayBuffer = await fileRes.arrayBuffer();
 
     // 3. Upload to tmpfiles.org
     const formData = new FormData();
-    const blob = new Blob([fileRes.data], { type: "audio/mpeg" });
+    const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
     formData.append("file", blob, `${slug}.mp3`);
     formData.append("expire", "172800"); // 48 hours
 

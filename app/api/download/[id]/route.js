@@ -16,20 +16,23 @@ export async function GET(request, { params }) {
   try {
     const downloadUrl = `https://pagalnew.com/320-download/${id}`;
 
-    const response = await axios.get(downloadUrl, {
-      responseType: "arraybuffer",
+    const response = await fetch(downloadUrl, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Referer: "https://pagalnew.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+        "Referer": "https://pagalnew.com/",
       },
-      timeout: 30000,
-      maxRedirects: 5,
     });
+
+    if (!response.ok) {
+      throw new Error(`Failed to download audio: ${response.status} ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
 
     // Get the filename from content-disposition header if available
     let filename = `song-${id}.mp3`;
-    const contentDisposition = response.headers["content-disposition"];
+    const contentDisposition = response.headers.get("content-disposition");
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(
         /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
@@ -39,12 +42,12 @@ export async function GET(request, { params }) {
       }
     }
 
-    return new NextResponse(response.data, {
+    return new NextResponse(arrayBuffer, {
       status: 200,
       headers: {
         "Content-Type": "audio/mpeg",
         "Content-Disposition": `attachment; filename="${filename}"`,
-        "Content-Length": response.data.byteLength.toString(),
+        "Content-Length": arrayBuffer.byteLength.toString(),
       },
     });
   } catch (error) {
