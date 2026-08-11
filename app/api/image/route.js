@@ -11,11 +11,7 @@ export async function GET(request) {
 
   try {
     // Construct the URL internally so the domain is never exposed to the client
-    let targetUrl = `https://pagalnew.com/${path}`;
-    
-    if (process.env.ZENROWS_API_KEY) {
-      targetUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_API_KEY}&url=${encodeURIComponent(targetUrl)}&premium_proxy=true`;
-    }
+    const targetUrl = `https://pagalnew.com/${path}`;
     
     const response = await fetch(targetUrl, {
       headers: {
