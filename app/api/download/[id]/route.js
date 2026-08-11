@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
 
+export const maxDuration = 60; // 60 seconds limit for Vercel
+
 export async function GET(request, { params }) {
   const { id } = await params;
 

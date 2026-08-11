@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import * as cheerio from "cheerio";
 
+export const maxDuration = 60; // 60 seconds limit for Vercel
+
 export async function GET(request, { params }) {
   const { slug } = await params;
 
